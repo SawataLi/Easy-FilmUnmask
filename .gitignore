@@ -1,0 +1,67 @@
+# ============================================================
+# Easy-FilmUnmask —— 独立仓库忽略规则
+# 结构约定：src/(源码) tools/(辅助脚本) third_party/,licenses/
+#          output/(构建产物) input/(样例说明)
+# ============================================================
+
+# ---- 构建产物 output/（发布走 GitHub Releases，不入版本库）----
+/output/web/
+/output/build/
+/output/verification/
+/output/*.exe
+/output/*.msi
+/output/*.zip
+/output/*.tiff
+/output/*.tif
+/output/SHA256.json
+
+# ---- 本地工具链缓存 tools/（体积大、可由脚本重建）----
+/tools/cargo/
+/tools/rustup/
+/tools/npm-cache/
+/tools/uv-cache/
+/tools/assetgen/.venv/
+
+# ---- 前端 / Node ----
+node_modules/
+/src/*.tsbuildinfo
+/src/dist/
+/dist/
+*.tsbuildinfo
+.eslintcache
+
+# ---- Rust / Tauri ----
+target/
+/src/src-tauri/target/
+/src/src-tauri/gen/
+
+# ---- Python ----
+__pycache__/
+*.py[oc]
+*.pyd
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- 密钥 / 凭证（严禁入库）----
+*.token
+.env
+.env.*
+
+# ---- 通用缓存 / 临时产物 ----
+.cache/
+tmp/
+temp/
+*.tmp
+*.bak
+*.log
+
+# ---- 操作系统垃圾文件 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Windows 占位文件 ----
+nul
