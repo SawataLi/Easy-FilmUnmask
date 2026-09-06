@@ -1,12 +1,22 @@
-# 片基 · Film Base
+# 片基 · Easy-FilmUnmask
 
-用于数字翻拍负片的本地 Windows 暗房。Tauri 2 桌面容器、React / TypeScript 界面、Rust 浮点图像引擎。没有内置色罩，也不会自动替用户选取片基。
+> 产品名 **片基 / Film Base**（程序 `Film Base`，标识 `studio.filmbase.desktop`）。用于数字翻拍负片的本地 Windows 暗房。Tauri 2 桌面容器、React / TypeScript 界面、Rust 浮点图像引擎。**没有内置色罩，也不会自动替用户选取片基** —— 片基由你在画面透明边缘采样决定。
 
-## 启动
+- 当前版本：**v0.1.0**（Apache-2.0）
+- 所有图像运算均在本机执行，运行不需要 Node、Rust 或 Python。
 
-- 安装版：运行 `output/Film-Base-0.1.0-x64-setup.exe`。
-- 免安装版：双击 `output/Film-Base.exe`。需要 Windows 10/11 x64 和 Microsoft Edge WebView2 Runtime。
-- 所有图像运算均在本机执行。运行应用不需要 Node、Rust 或 Python。
+## 下载
+
+前往 [Releases](https://github.com/SawataLi/Easy-FilmUnmask/releases/tag/v0.1.0)：
+
+| 文件 | 说明 |
+| --- | --- |
+| `Film-Base-0.1.0-x64-setup.exe` | Windows 安装向导版 |
+| `Film-Base.exe` | 免安装绿色版，双击即用 |
+| `Film-Base-0.1.0-source.zip` | 源码包 |
+| `SHA256.json` | 上述文件的字节数与 SHA-256，供完整性核对 |
+
+运行环境：Windows 10 / 11 x64，以及 Microsoft Edge WebView2 Runtime（多数系统已自带）。
 
 ## 建议操作顺序
 
@@ -44,29 +54,53 @@
 
 TIFF 为全尺寸 RGB 16 位，JPEG 为全尺寸 95 质量 RGB 8 位；两者嵌入由 LittleCMS 生成的 sRGB ICC。预览和导出共用 Rust 像素变换，预览仅减少采样分辨率。首版不含裁切旋转编辑、自动除尘、批量导出或 LUT。
 
-## 源码与构建
+## 仓库结构
 
 ```
-src/                  React 界面、测试、依赖清单及锁文件
-src/src-tauri/         Rust 引擎、Tauri 命令、配置及测试
-input/                参考素材说明
-output/               应用、安装包、验收结果
-tools/dev.ps1         开发／构建／验证入口
-tools/assetgen/        uv 隔离的图标与 ICC 生成脚本
+src/                    React 界面、Vite 配置、前端测试与 npm 锁文件
+src/src-tauri/          Rust 图像引擎、Tauri 命令、图标与 Cargo 锁文件
+input/README.md         参考素材规格（示例 DNG 不在仓库内分发）
+third_party/rawler-0.7.2/  rawler 上游源码只读副本，供离线审计与可复现重编译
+licenses/               各第三方组件许可证原文
+tools/dev.ps1           开发／构建／验证统一入口
+tools/assetgen/         uv 隔离的图标与 ICC 生成脚本
+LICENSE / THIRD_PARTY.md  本项目许可（Apache-2.0）与第三方清单
 ```
 
-开发依赖：Rust stable MSVC、Microsoft C++ Build Tools（含 Windows SDK）、Node.js、WebView2。本工作区已在 `tools/cargo` 和 `tools/rustup` 建立 Rust 环境，未修改系统 PATH。
+构建产物目录 `output/`（安装包、便携版、验收结果）以及本地工具链缓存 `tools/cargo/`、`tools/rustup/` 均通过 `.gitignore` 排除，不随仓库分发；发布产物见 Releases。
 
-在 `src/` 执行 `npm ci` 恢复前端依赖。随后在项目目录运行：
+## 从源码构建
+
+依赖：
+
+- Rust stable（MSVC 工具链）与 Microsoft C++ Build Tools（含 Windows SDK）
+- Node.js（用于前端与 Tauri CLI）
+- Microsoft Edge WebView2 Runtime
+
+在 `src/` 执行 `npm ci` 恢复前端依赖，随后在仓库根目录运行：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools/dev.ps1 dev
-powershell -ExecutionPolicy Bypass -File tools/dev.ps1 build
-powershell -ExecutionPolicy Bypass -File tools/dev.ps1 test
+powershell -ExecutionPolicy Bypass -File tools/dev.ps1 dev      # 开发调试
+powershell -ExecutionPolicy Bypass -File tools/dev.ps1 build    # 产出安装包到 output/
+powershell -ExecutionPolicy Bypass -File tools/dev.ps1 test     # cargo test + npm test
+powershell -ExecutionPolicy Bypass -File tools/dev.ps1 verify   # 端到端验收（见下）
 ```
 
-Rust 依赖由 Cargo 清单与锁文件管理；前端由 npm 清单与锁文件管理。图标／ICC 工具使用 `tools/assetgen/pyproject.toml` 与 `uv.lock`，执行方式为该目录下的 `uv run python generate.py`，不属于应用运行时依赖。
+`tools/dev.ps1` 若检测到 `tools/cargo/` 与 `tools/rustup/` 存在本地 Rust 工具链，会自动设置 `CARGO_HOME`／`RUSTUP_HOME` 并使用它、且不改系统 PATH；否则回退使用系统已安装的 Cargo／rustup。Rust 依赖由 `Cargo.toml` 与 `Cargo.lock` 管理，前端由 npm 清单与锁文件管理。
 
-`src/tests/desktop.mjs` 使用实际 Windows Tauri 程序和 WebView2 CDP 执行端到端验收；仅替代系统打开／保存文件对话框，图像解码、预设和导出均调用真实 Rust 后端。测试数据通过 `FILM_BASE_DATA_DIR` 隔离到验收目录，正常启动无需设置该变量。
+图标／ICC 生成工具用 uv 隔离运行，不属于应用运行时依赖：
 
-参考文件原件位于工作区根目录 `胶片.dng`，不会被移动或覆盖。验收中的采样坐标只出现在测试脚本／结果中，不打包成应用默认预设。
+```powershell
+cd tools/assetgen
+uv run python generate.py
+```
+
+Rust 引擎会按 `Cargo.lock` 从 crates.io 获取 `rawler 0.7.2`；`third_party/rawler-0.7.2/` 是同一版本的上游原版副本，仅用于离线审计与可复现重编译，不参与构建路径。
+
+`src/tests/desktop.mjs` 使用实际 Windows Tauri 程序与 WebView2 CDP 执行端到端验收；仅替代系统打开／保存文件对话框，图像解码、预设与导出均调用真实 Rust 后端。测试数据通过 `FILM_BASE_DATA_DIR` 隔离到验收目录，正常启动无需设置该变量。
+
+## 许可
+
+本项目以 **Apache-2.0** 授权，全文见 [LICENSE](LICENSE)。
+
+`rawler`（DNG 解码／PPG 去马赛克）上游为 **LGPL-2.1**，本项目使用未修改的上游原版，并随源码分发其完整源码于 `third_party/rawler-0.7.2/`。各第三方组件许可证原文见 `licenses/`，用途与上游入口见 [THIRD_PARTY.md](THIRD_PARTY.md)。
